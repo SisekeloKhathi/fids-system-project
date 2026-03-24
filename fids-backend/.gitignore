@@ -1,0 +1,12 @@
+# Windows
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# NGINX logs
+*.log
+logs/
