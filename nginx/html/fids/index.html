@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIDS - Flight Information Display System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1e24;
+            overflow-x: hidden;
+        }
+        .nav-bar {
+            background: #0f1115;
+            padding: 0 2rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid #2a2f38;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-btn {
+            background: transparent;
+            color: #9aa3b0;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .nav-btn:hover { color: #7ab87e; }
+        .nav-btn.active { color: #7ab87e; }
+        .nav-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #7ab87e;
+        }
+        .page {
+            display: none;
+            padding: 2rem;
+            animation: fadeIn 0.3s ease;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .page.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .board-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: #252a32;
+            padding: 0.5rem;
+            border-radius: 12px;
+            flex-wrap: wrap;
+        }
+        .board-tab {
+            background: transparent;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: #9aa3b0;
+            transition: all 0.2s;
+        }
+        .board-tab:hover { color: #7ab87e; }
+        .board-tab.active {
+            background: #7ab87e;
+            color: #0f1115;
+        }
+        .fids-container {
+            background: #252a32;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            overflow: hidden;
+            border: 1px solid #2f353f;
+        }
+        .fids-header {
+            background: #0f1115;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #2a2f38;
+        }
+        .fids-header h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #e8edf2;
+        }
+        .fids-header p {
+            font-size: 0.8rem;
+            color: #7ab87e;
+            margin-top: 0.25rem;
+        }
+        .flight-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .flight-table th {
+            background: #1e2229;
+            padding: 1rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #7ab87e;
+            border-bottom: 1px solid #2f353f;
+            text-align: left;
+        }
+        .flight-table td {
+            padding: 1rem 1.5rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #2a2f38;
+            color: #e8edf2;
+        }
+        .flight-table tr:hover {
+            background: #2a2f38;
+            cursor: pointer;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.9rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .status-ontime {
+            background: rgba(122, 184, 126, 0.12);
+            color: #7ab87e;
+            border: 1px solid rgba(122, 184, 126, 0.25);
+        }
+        .status-boarding {
+            background: rgba(255, 193, 84, 0.12);
+            color: #ffc154;
+            border: 1px solid rgba(255, 193, 84, 0.25);
+        }
+        .status-delayed {
+            background: rgba(255, 107, 107, 0.12);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.25);
+        }
+        .status-arrived {
+            background: rgba(122, 184, 126, 0.12);
+            color: #7ab87e;
+            border: 1px solid rgba(122, 184, 126, 0.25);
+        }
+        .update-badge {
+            background: #1e2229;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.7rem;
+            color: #7ab87e;
+            text-align: right;
+            border-top: 1px solid #2a2f38;
+        }
+        .admin-container {
+            background: #252a32;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            overflow: hidden;
+            border: 1px solid #2f353f;
+        }
+        .admin-header {
+            background: #0f1115;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #2a2f38;
+        }
+        .admin-header h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #e8edf2;
+        }
+        .form-section {
+            padding: 2rem;
+            border-bottom: 1px solid #2a2f38;
+        }
+        .form-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7ab87e;
+            margin-bottom: 1.25rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: #9aa3b0;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group select {
+            background: #1e2229;
+            border: 1px solid #2f353f;
+            padding: 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #e8edf2;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #7ab87e;
+        }
+        .btn-primary {
+            background: #7ab87e;
+            color: #0f1115;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1.5rem;
+        }
+        .btn-primary:hover {
+            background: #8fc893;
+        }
+        .btn-secondary {
+            background: #2a2f38;
+            color: #7ab87e;
+            padding: 0.5rem 1rem;
+            border: 1px solid #3a404b;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 0 0.25rem;
+        }
+        .btn-danger {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 30px;
+            cursor: pointer;
+        }
+        .arch-grid, .network-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .arch-card, .network-card {
+            background: #252a32;
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid #2f353f;
+        }
+        .arch-card h3, .network-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7ab87e;
+            margin-bottom: 0.75rem;
+        }
+        .arch-card p, .network-card p {
+            font-size: 0.8rem;
+            color: #9aa3b0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #252a32;
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid #7ab87e;
+        }
+        .modal-content p {
+            color: #e8edf2;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .flight-table th, .flight-table td {
+                padding: 0.75rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <button class="nav-btn active" onclick="showPage('fids')">Departures & Arrivals</button>
+        <button class="nav-btn" onclick="showPage('admin')">Flight Management</button>
+        <button class="nav-btn" onclick="showPage('architecture')">Architecture</button>
+        <button class="nav-btn" onclick="showPage('network')">Network</button>
+    </div>
+
+    <div id="fids-page" class="page active">
+        <div class="fids-container">
+            <div class="fids-header">
+                <h1 id="board-title">🛫 INTERNATIONAL DEPARTURES</h1>
+                <p id="board-subtitle">Live flight information</p>
+            </div>
+            <div class="board-tabs">
+                <button class="board-tab active" data-board="intl-dep">🛫 International Departures</button>
+                <button class="board-tab" data-board="dom-dep">🛫 Domestic Departures</button>
+                <button class="board-tab" data-board="intl-arr">🛬 International Arrivals</button>
+                <button class="board-tab" data-board="dom-arr">🛬 Domestic Arrivals</button>
+            </div>
+            <table class="flight-table">
+                <thead><tr><th>Flight</th><th id="location-header">Destination</th><th>Scheduled</th><th>Gate</th><th>Status</th></tr></thead>
+                <tbody id="fids-table-body"></tbody>
+            </table>
+            <div class="update-badge">
+                🔄 Auto-refreshing every 5 seconds | Last update: <span id="last-update">--:--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-page" class="page">
+        <div class="admin-container">
+            <div class="admin-header"><h2>✈️ Flight Management</h2></div>
+            <div class="form-section">
+                <h3>➕ Add New Flight</h3>
+                <form id="add-flight-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Board Type</label>
+                            <select id="board-type" required>
+                                <option value="intl-dep">International Departures</option>
+                                <option value="dom-dep">Domestic Departures</option>
+                                <option value="intl-arr">International Arrivals</option>
+                                <option value="dom-arr">Domestic Arrivals</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Flight Number</label>
+                            <input type="text" id="flight-number" required placeholder="e.g., SA101">
+                        </div>
+                        <div class="form-group">
+                            <label>Destination / Origin</label>
+                            <input type="text" id="location" required placeholder="e.g., London">
+                        </div>
+                        <div class="form-group">
+                            <label>Scheduled Time</label>
+                            <input type="time" id="time" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Gate</label>
+                            <input type="text" id="gate" required placeholder="e.g., A12">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="On Time">On Time</option>
+                                <option value="Boarding">Boarding</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Departed">Departed</option>
+                                <option value="Arrived">Arrived</option>
+                                <option value="Landed">Landed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">+ Add Flight</button>
+                </form>
+            </div>
+            <div class="form-section"><h3>📋 International Departures</h3><table class="flight-table"><thead><tr><th>Flight</th><th>Destination</th><th>Time</th><th>Gate</th><th>Status</th><th>Actions</th></tr></thead><tbody id="intl-dep-body"></tbody></table></div>
+            <div class="form-section"><h3>📋 Domestic Departures</h3><table class="flight-table"><thead><tr><th>Flight</th><th>Destination</th><th>Time</th><th>Gate</th><th>Status</th><th>Actions</th></tr></thead><tbody id="dom-dep-body"></tbody></table></div>
+            <div class="form-section"><h3>📋 International Arrivals</h3><table class="flight-table"><thead><tr><th>Flight</th><th>Origin</th><th>Time</th><th>Gate</th><th>Status</th><th>Actions</th></tr></thead><tbody id="intl-arr-body"></tbody></table></div>
+            <div class="form-section"><h3>📋 Domestic Arrivals</h3><table class="flight-table"><thead><tr><th>Flight</th><th>Origin</th><th>Time</th><th>Gate</th><th>Status</th><th>Actions</th></tr></thead><tbody id="dom-arr-body"></tbody></table></div>
+        </div>
+    </div>
+
+    <div id="architecture-page" class="page">
+        <div class="admin-container">
+            <div class="admin-header"><h2>🏗️ System Architecture</h2></div>
+            <div class="arch-grid">
+                <div class="arch-card"><h3>🖥️ NGINX (Windows)</h3><p>Reverse proxy | Port: 80 | C:\nginx\</p></div>
+                <div class="arch-card"><h3>⚡ FastAPI Backend</h3><p>REST API | Port: 5000 | C:\fids\app.py</p></div>
+                <div class="arch-card"><h3>📊 Frontend Dashboard</h3><p>HTML/JS | Auto-refresh 5s | C:\nginx\html\fids\</p></div>
+                <div class="arch-card"><h3>🖼️ Display Clients</h3><p>Windows PCs | Smart TVs | Kiosk mode</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="network-page" class="page">
+        <div class="admin-container">
+            <div class="admin-header"><h2>🌐 Network Topology</h2></div>
+            <div class="network-grid">
+                <div class="network-card"><h3>☁️ Internet Cloud</h3><p>ISP connection</p></div>
+                <div class="network-card"><h3>🔥 pfSense Firewall</h3><p>Security gateway</p></div>
+                <div class="network-card"><h3>🛡️ DMZ Zone</h3><p>NGINX servers | 192.168.1.100</p></div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+                <div class="network-card" style="flex:1"><h3>🔵 VLAN 10 - Servers</h3><p>192.168.10.0/24</p></div>
+                <div class="network-card" style="flex:1"><h3>🟢 VLAN 20 - Displays</h3><p>192.168.20.0/24</p></div>
+                <div class="network-card" style="flex:1"><h3>🟡 VLAN 30 - Admin</h3><p>192.168.30.0/24</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <p id="modal-message"></p>
+            <button class="btn-primary" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        let internationalDepartures = [
+            { id: 1, flight: "BA204", location: "London (LHR)", time: "10:45", gate: "B7", status: "Delayed" },
+            { id: 2, flight: "EK765", location: "Dubai (DXB)", time: "13:20", gate: "C3", status: "On Time" },
+            { id: 3, flight: "SQ321", location: "Singapore (SIN)", time: "15:10", gate: "D9", status: "On Time" },
+            { id: 4, flight: "AF789", location: "Paris (CDG)", time: "19:30", gate: "F4", status: "On Time" }
+        ];
+        let domesticDepartures = [
+            { id: 101, flight: "SA101", location: "Cape Town (CPT)", time: "08:30", gate: "A12", status: "Boarding" },
+            { id: 102, flight: "SA103", location: "Durban (DUR)", time: "09:45", gate: "A14", status: "On Time" },
+            { id: 103, flight: "SA105", location: "Port Elizabeth (PLZ)", time: "11:20", gate: "B2", status: "On Time" }
+        ];
+        let internationalArrivals = [
+            { id: 201, flight: "BA203", location: "London (LHR)", time: "09:15", gate: "B7", status: "Arrived" },
+            { id: 202, flight: "EK764", location: "Dubai (DXB)", time: "12:00", gate: "C3", status: "Landed" },
+            { id: 203, flight: "SQ320", location: "Singapore (SIN)", time: "14:30", gate: "D9", status: "On Time" }
+        ];
+        let domesticArrivals = [
+            { id: 301, flight: "SA102", location: "Cape Town (CPT)", time: "10:15", gate: "A12", status: "Arrived" },
+            { id: 302, flight: "SA104", location: "Durban (DUR)", time: "11:30", gate: "A14", status: "Arrived" }
+        ];
+        let nextId = { intlDep: 5, domDep: 104, intlArr: 204, domArr: 303 };
+        let currentBoard = "intl-dep";
+
+        function getStatusClass(s) {
+            if(s.toLowerCase()=='boarding') return 'status-boarding';
+            if(s.toLowerCase()=='delayed') return 'status-delayed';
+            if(s.toLowerCase()=='arrived'||s.toLowerCase()=='landed') return 'status-arrived';
+            return 'status-ontime';
+        }
+
+        function renderDisplay() {
+            let flights, titleText, isArrival;
+            if(currentBoard=="intl-dep") { flights=internationalDepartures; titleText="🛫 INTERNATIONAL DEPARTURES"; isArrival=false; }
+            else if(currentBoard=="dom-dep") { flights=domesticDepartures; titleText="🛫 DOMESTIC DEPARTURES"; isArrival=false; }
+            else if(currentBoard=="intl-arr") { flights=internationalArrivals; titleText="🛬 INTERNATIONAL ARRIVALS"; isArrival=true; }
+            else { flights=domesticArrivals; titleText="🛬 DOMESTIC ARRIVALS"; isArrival=true; }
+            
+            document.getElementById('board-title').innerText = titleText;
+            document.getElementById('location-header').innerText = isArrival ? "Origin" : "Destination";
+            let tbody = document.getElementById('fids-table-body');
+            tbody.innerHTML = '';
+            flights.forEach(f => {
+                let row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<strong>${f.flight}</strong>`;
+                row.insertCell(1).innerHTML = f.location;
+                row.insertCell(2).innerHTML = f.time;
+                row.insertCell(3).innerHTML = f.gate;
+                row.insertCell(4).innerHTML = `<span class="status-badge ${getStatusClass(f.status)}">${f.status}</span>`;
+                row.onclick = () => showModal(`✈️ ${f.flight}<br>${isArrival?'From':'To'}: ${f.location}<br>Gate: ${f.gate} | Time: ${f.time}<br>Status: ${f.status}`);
+            });
+            document.getElementById('last-update').innerHTML = new Date().toLocaleTimeString();
+        }
+
+        function renderAdminTables() {
+            let intlDepBody=document.getElementById('intl-dep-body'), domDepBody=document.getElementById('dom-dep-body');
+            let intlArrBody=document.getElementById('intl-arr-body'), domArrBody=document.getElementById('dom-arr-body');
+            intlDepBody.innerHTML=''; domDepBody.innerHTML=''; intlArrBody.innerHTML=''; domArrBody.innerHTML='';
+            internationalDepartures.forEach(f=>{let r=intlDepBody.insertRow(); r.insertCell(0).innerHTML=f.flight; r.insertCell(1).innerHTML=f.location; r.insertCell(2).innerHTML=f.time; r.insertCell(3).innerHTML=f.gate; r.insertCell(4).innerHTML=`<span class="status-badge ${getStatusClass(f.status)}">${f.status}</span>`; let a=r.insertCell(5); a.innerHTML=`<button class="btn-secondary" onclick="editFlight('intlDep',${f.id})">Edit</button> <button class="btn-danger" onclick="deleteFlight('intlDep',${f.id})">Delete</button>`;});
+            domesticDepartures.forEach(f=>{let r=domDepBody.insertRow(); r.insertCell(0).innerHTML=f.flight; r.insertCell(1).innerHTML=f.location; r.insertCell(2).innerHTML=f.time; r.insertCell(3).innerHTML=f.gate; r.insertCell(4).innerHTML=`<span class="status-badge ${getStatusClass(f.status)}">${f.status}</span>`; let a=r.insertCell(5); a.innerHTML=`<button class="btn-secondary" onclick="editFlight('domDep',${f.id})">Edit</button> <button class="btn-danger" onclick="deleteFlight('domDep',${f.id})">Delete</button>`;});
+            internationalArrivals.forEach(f=>{let r=intlArrBody.insertRow(); r.insertCell(0).innerHTML=f.flight; r.insertCell(1).innerHTML=f.location; r.insertCell(2).innerHTML=f.time; r.insertCell(3).innerHTML=f.gate; r.insertCell(4).innerHTML=`<span class="status-badge ${getStatusClass(f.status)}">${f.status}</span>`; let a=r.insertCell(5); a.innerHTML=`<button class="btn-secondary" onclick="editFlight('intlArr',${f.id})">Edit</button> <button class="btn-danger" onclick="deleteFlight('intlArr',${f.id})">Delete</button>`;});
+            domesticArrivals.forEach(f=>{let r=domArrBody.insertRow(); r.insertCell(0).innerHTML=f.flight; r.insertCell(1).innerHTML=f.location; r.insertCell(2).innerHTML=f.time; r.insertCell(3).innerHTML=f.gate; r.insertCell(4).innerHTML=`<span class="status-badge ${getStatusClass(f.status)}">${f.status}</span>`; let a=r.insertCell(5); a.innerHTML=`<button class="btn-secondary" onclick="editFlight('domArr',${f.id})">Edit</button> <button class="btn-danger" onclick="deleteFlight('domArr',${f.id})">Delete</button>`;});
+        }
+
+        function addFlight(e){
+            e.preventDefault();
+            let type=document.getElementById('board-type').value;
+            let flight=document.getElementById('flight-number').value.trim();
+            let loc=document.getElementById('location').value.trim();
+            let time=document.getElementById('time').value;
+            let gate=document.getElementById('gate').value.trim();
+            let status=document.getElementById('status').value;
+            if(!flight||!loc||!time||!gate){ showModal('Fill all fields'); return; }
+            if(type=='intl-dep') internationalDepartures.push({id:nextId.intlDep++, flight, location:loc, time, gate, status});
+            else if(type=='dom-dep') domesticDepartures.push({id:nextId.domDep++, flight, location:loc, time, gate, status});
+            else if(type=='intl-arr') internationalArrivals.push({id:nextId.intlArr++, flight, location:loc, time, gate, status});
+            else domesticArrivals.push({id:nextId.domArr++, flight, location:loc, time, gate, status});
+            renderAll(); showModal('Flight added!'); document.getElementById('add-flight-form').reset();
+        }
+
+        function editFlight(type,id){
+            let flight;
+            if(type=='intlDep') flight=internationalDepartures.find(f=>f.id==id);
+            else if(type=='domDep') flight=domesticDepartures.find(f=>f.id==id);
+            else if(type=='intlArr') flight=internationalArrivals.find(f=>f.id==id);
+            else flight=domesticArrivals.find(f=>f.id==id);
+            if(!flight) return;
+            let nf=prompt('Flight:',flight.flight); if(nf) flight.flight=nf;
+            let nl=prompt(type.includes('Arr')?'Origin:':'Destination:',flight.location); if(nl) flight.location=nl;
+            let nt=prompt('Time:',flight.time); if(nt) flight.time=nt;
+            let ng=prompt('Gate:',flight.gate); if(ng) flight.gate=ng;
+            let ns=prompt('Status:',flight.status); if(ns) flight.status=ns;
+            renderAll(); showModal('Flight updated');
+        }
+
+        function deleteFlight(type,id){
+            if(confirm('Delete this flight?')){
+                if(type=='intlDep') internationalDepartures=internationalDepartures.filter(f=>f.id!=id);
+                else if(type=='domDep') domesticDepartures=domesticDepartures.filter(f=>f.id!=id);
+                else if(type=='intlArr') internationalArrivals=internationalArrivals.filter(f=>f.id!=id);
+                else domesticArrivals=domesticArrivals.filter(f=>f.id!=id);
+                renderAll(); showModal('Flight deleted');
+            }
+        }
+
+        function renderAll(){ renderDisplay(); renderAdminTables(); }
+        function showPage(p){ document.querySelectorAll('.page').forEach(page=>page.classList.remove('active')); document.getElementById(p+'-page').classList.add('active'); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); if(p=='admin') renderAdminTables(); if(p=='fids') renderDisplay(); }
+        function showModal(m){ document.getElementById('modal-message').innerHTML=m; document.getElementById('modal').classList.add('active'); }
+        function closeModal(){ document.getElementById('modal').classList.remove('active'); }
+        document.querySelectorAll('.board-tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.board-tab').forEach(t=>t.classList.remove('active')); t.classList.add('active'); currentBoard=t.getAttribute('data-board'); renderDisplay();}));
+        document.getElementById('add-flight-form').addEventListener('submit',addFlight);
+        window.onclick=e=>{if(e.target==document.getElementById('modal')) closeModal();};
+        renderAll();
+        setInterval(()=>{ renderDisplay(); renderAdminTables(); },5000);
+    </script>
+</body>
+</html>
